@@ -14,33 +14,57 @@ export interface AccountInformationAndPerformance {
 export async function getAccountInformationAndPerformance(
   initialCapital: number
 ): Promise<AccountInformationAndPerformance> {
-  const positions = await binance.fetchPositions(["BTC/USDT"]);
-  const currentPositionsValue = positions.reduce((acc, position) => {
-    return acc + (position.initialMargin || 0) + (position.unrealizedPnl || 0);
-  }, 0);
-  const contractValue = positions.reduce((acc, position) => {
-    return acc + (position.contracts || 0);
-  }, 0);
-  const currentCashValue = await binance.fetchBalance({ type: "future" });
-  const totalCashValue = currentCashValue.USDT.total || 0;
-  const availableCash = currentCashValue.USDT.free || 0;
-  const currentTotalReturn = (totalCashValue - initialCapital) / initialCapital;
-  const sharpeRatio =
-    currentTotalReturn /
-    (positions.reduce((acc, position) => {
-      return acc + (position.unrealizedPnl || 0);
-    }, 0) /
-      initialCapital);
+  try {
+    console.log("🔍 Fetching account information from Binance...");
+    
+    const positions = await binance.fetchPositions(["BTC/USDT"]);
+    console.log(`✅ Positions fetched: ${positions.length} positions`);
+    
+    const currentPositionsValue = positions.reduce((acc, position) => {
+      return acc + (position.initialMargin || 0) + (position.unrealizedPnl || 0);
+    }, 0);
+    
+    const contractValue = positions.reduce((acc, position) => {
+      return acc + (position.contracts || 0);
+    }, 0);
+    
+    const currentCashValue = await binance.fetchBalance({ type: "future" });
+    console.log(`✅ Balance fetched: ${currentCashValue.USDT?.total || 0} USDT`);
+    
+    const totalCashValue = currentCashValue.USDT?.total || 0;
+    const availableCash = currentCashValue.USDT?.free || 0;
+    const currentTotalReturn = (totalCashValue - initialCapital) / initialCapital;
+    const sharpeRatio =
+      currentTotalReturn /
+      (positions.reduce((acc, position) => {
+        return acc + (position.unrealizedPnl || 0);
+      }, 0) /
+        initialCapital);
 
-  return {
-    currentPositionsValue,
-    contractValue,
-    totalCashValue,
-    availableCash,
-    currentTotalReturn,
-    positions,
-    sharpeRatio,
-  };
+    return {
+      currentPositionsValue,
+      contractValue,
+      totalCashValue,
+      availableCash,
+      currentTotalReturn,
+      positions,
+      sharpeRatio,
+    };
+  } catch (error) {
+    console.error("❌ Error fetching account information:", error);
+    
+    // Fallback to zero state if API fails
+    console.warn("⚠️  Using fallback data (zeros) due to API error");
+    return {
+      currentPositionsValue: 0,
+      contractValue: 0,
+      totalCashValue: initialCapital,
+      availableCash: initialCapital,
+      currentTotalReturn: 0,
+      positions: [],
+      sharpeRatio: 0,
+    };
+  }
 }
 
 export function formatAccountPerformance(
