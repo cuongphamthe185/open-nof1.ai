@@ -144,15 +144,30 @@ export function ModelsView() {
                   </div>
                 )}
 
-                {/* Amount */}
-                {trade.amount && (
+                {/* Margin Amount (in USDT) */}
+                {trade.amount && trade.pricing && (
                   <div className="space-y-1">
                     <div className="text-xs text-muted-foreground font-medium">
-                      Amount
+                      Margin Amount
+                    </div>
+                    <div className="font-mono font-bold text-base">
+                      ${trade.amount.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}{" "}
+                      <span className="text-xs text-muted-foreground">USDT</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* BTC Position */}
+                {trade.amount && trade.pricing && (
+                  <div className="space-y-1">
+                    <div className="text-xs text-muted-foreground font-medium">
+                      BTC Position
                     </div>
                     <div className="font-mono font-semibold">
-                      {trade.amount}{" "}
-                      {trade.symbol?.includes("/") ? "units" : trade.symbol}
+                      {(trade.amount / trade.pricing).toFixed(6)} BTC
                     </div>
                   </div>
                 )}
@@ -169,21 +184,22 @@ export function ModelsView() {
                   </div>
                 )}
 
-                {/* Total Value */}
-                {trade.pricing && trade.amount && (
+                {/* Position Value (Margin × Leverage) */}
+                {trade.amount && trade.leverage && (
                   <div className="space-y-1">
                     <div className="text-xs text-muted-foreground font-medium">
-                      Total Value
+                      Position Value
                     </div>
                     <div className="font-mono font-bold text-base">
                       $
-                      {(trade.pricing * trade.amount).toLocaleString(
+                      {(trade.amount * trade.leverage).toLocaleString(
                         undefined,
                         {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
                         }
-                      )}
+                      )}{" "}
+                      <span className="text-xs text-muted-foreground">USDT</span>
                     </div>
                   </div>
                 )}
@@ -363,10 +379,20 @@ export function ModelsView() {
                               {decision.amount && (
                                 <div className="flex justify-between items-center">
                                   <span className="text-muted-foreground">
-                                    Amount:
+                                    Margin Amount:
                                   </span>
                                   <span className="font-mono font-semibold">
-                                    {decision.amount}
+                                    ${decision.amount.toLocaleString()} USDT
+                                  </span>
+                                </div>
+                              )}
+                              {decision.pricing && decision.amount && (
+                                <div className="flex justify-between items-center">
+                                  <span className="text-muted-foreground">
+                                    {decision.symbol} Position:
+                                  </span>
+                                  <span className="font-mono font-semibold text-blue-600">
+                                    {((decision.amount * (decision.leverage || 1)) / decision.pricing).toFixed(8)} {decision.symbol}
                                   </span>
                                 </div>
                               )}
@@ -380,16 +406,13 @@ export function ModelsView() {
                                   </span>
                                 </div>
                               )}
-                              {decision.pricing && decision.amount && (
+                              {decision.amount && decision.leverage && (
                                 <div className="flex justify-between items-center pt-1.5 mt-1.5 border-t border-current/20">
                                   <span className="text-muted-foreground font-semibold">
-                                    Total:
+                                    Position Value:
                                   </span>
-                                  <span className="font-mono font-bold">
-                                    $
-                                    {(
-                                      decision.pricing * decision.amount
-                                    ).toLocaleString()}
+                                  <span className="font-mono font-bold text-green-600">
+                                    ${(decision.amount * decision.leverage).toLocaleString()} USDT
                                   </span>
                                 </div>
                               )}

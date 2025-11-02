@@ -39,6 +39,12 @@ CRITICAL: You must respond in a valid JSON object with the following structure:
 When recommending BUY, include:
 - "buy": { "pricing": <entry price>, "amount": <position size in USDT>, "leverage": <1-20> }
 
+**MONEY MANAGEMENT RULES (CRITICAL):**
+- Maximum position size: 20% of available cash per trade
+- With leverage >5x: reduce to 10% of available cash
+- Leave at least 30% cash reserve for risk management
+- Example: If availableCash = $1000, max position = $200 (or $100 if leverage >5x)
+
 When recommending SELL, include:
 - "sell": { "percentage": <0-100, percentage of position to sell> }
 
@@ -86,5 +92,17 @@ Timeframes note: Unless stated otherwise in a section title, intraday series are
 ${formatMarketState(currentMarketState)}
 ----------------------------------------------------------
 ## HERE IS YOUR ACCOUNT INFORMATION & PERFORMANCE
-${formatAccountPerformance(accountInformationAndPerformance)}`;
+${formatAccountPerformance(accountInformationAndPerformance)}
+
+----------------------------------------------------------
+## POSITION SIZING GUIDELINES (FOLLOW STRICTLY)
+⚠️ RISK MANAGEMENT RULES:
+- Max position size: 20% of Available Cash per trade
+- If leverage >5x: Max 10% of Available Cash
+- Always keep 30% cash reserve minimum
+- Example calculation:
+  * Available Cash: $${accountInformationAndPerformance.availableCash.toFixed(2)}
+  * Max position (1-5x leverage): $${(accountInformationAndPerformance.availableCash * 0.2).toFixed(2)}
+  * Max position (>5x leverage): $${(accountInformationAndPerformance.availableCash * 0.1).toFixed(2)}
+----------------------------------------------------------`;
 }

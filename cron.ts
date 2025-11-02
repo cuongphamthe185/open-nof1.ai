@@ -26,7 +26,7 @@ cron.schedule("*/10 * * * * *", async () => {
 });
 
 const runChatInterval = async () => {
-  console.log("Running task every 3 minutes");
+  console.log("Running task every 5 minutes");
   const token = jwt.sign(
     {
       sub: "cron-token",
@@ -42,8 +42,8 @@ const runChatInterval = async () => {
   );
 };
 
-// every 3 minutes
-cron.schedule("*/3 * * * *", async () => {
+// every 5 minutes (reduced from 3 to save costs)
+cron.schedule("*/5 * * * *", async () => {
   await runChatInterval();
 });
 
