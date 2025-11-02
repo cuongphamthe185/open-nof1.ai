@@ -2,7 +2,7 @@ import { generateObject } from "ai";
 import { generateUserPrompt, tradingPrompt } from "./prompt";
 import { getCurrentMarketState } from "../trading/current-market-state";
 import { z } from "zod";
-import { deepseekR1 } from "./model";
+import { deepseekThinking } from "./model"; // ✅ CHANGED: Dùng DeepSeek Direct (có reasoning)
 import { getAccountInformationAndPerformance } from "../trading/account-information-and-performance";
 import { prisma } from "../prisma";
 import { Opeartion, Symbol } from "@prisma/client";
@@ -25,7 +25,7 @@ export async function run(initialCapital: number) {
   });
 
   const { object, reasoning } = await generateObject({
-    model: deepseekR1,
+    model: deepseekThinking, // ✅ CHANGED: Dùng DeepSeek Direct (có reasoning)
     system: tradingPrompt,
     prompt: userPrompt,
     output: "object",

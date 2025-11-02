@@ -24,7 +24,7 @@ This open-source implementation currently focuses on running the **DeepSeek** tr
 - 💹 **Multi-Asset Support**: Trade BTC, ETH, SOL, BNB, and DOGE
 - 📈 **Performance Tracking**: Detailed metrics, trade history, and profit/loss tracking
 - 🔍 **Full Transparency**: Every decision, prompt, and reasoning is logged and visible
-- ⚡ **Cron Jobs**: Automated 20-second metric collection and 3-minute trading intervals
+- ⚡ **Cron Jobs**: Automated 20-second metric collection and 5-minute trading intervals
 
 ## 🏗️ Tech Stack
 
@@ -106,7 +106,7 @@ This open-source implementation currently focuses on running the **DeepSeek** tr
    You'll need to set up external cron jobs or use a service like [Vercel Cron](https://vercel.com/docs/cron-jobs) to call these endpoints:
 
    - `POST /api/cron/20-seconds-metrics-interval` - Collect metrics every 20 seconds
-   - `POST /api/cron/3-minutes-run-interval` - Execute trading logic every 3 minutes
+   - `POST /api/cron/3-minutes-run-interval` - Execute trading logic every 5 minutes
 
    Example crontab:
    ```bash
@@ -115,8 +115,8 @@ This open-source implementation currently focuses on running the **DeepSeek** tr
    * * * * * sleep 20 && curl -X POST http://localhost:3000/api/cron/20-seconds-metrics-interval -H "Authorization: Bearer YOUR_CRON_SECRET_KEY"
    * * * * * sleep 40 && curl -X POST http://localhost:3000/api/cron/20-seconds-metrics-interval -H "Authorization: Bearer YOUR_CRON_SECRET_KEY"
 
-   # Trading execution (every 3 minutes)
-   */3 * * * * curl -X POST http://localhost:3000/api/cron/3-minutes-run-interval -H "Authorization: Bearer YOUR_CRON_SECRET_KEY"
+   # Trading execution (every 5 minutes)
+   */5 * * * * curl -X POST http://localhost:3000/api/cron/3-minutes-run-interval -H "Authorization: Bearer YOUR_CRON_SECRET_KEY"
    ```
 
 Open [http://localhost:3000](http://localhost:3000) to view the dashboard.
@@ -157,7 +157,7 @@ open-nof1.ai/
 ## 🎮 How It Works
 
 1. **Data Collection**: Every 20 seconds, the system collects account metrics (balance, positions, PnL)
-2. **AI Decision Making**: Every 3 minutes, the AI analyzes market data and makes trading decisions
+2. **AI Decision Making**: Every 5 minutes, the AI analyzes market data and makes trading decisions
 3. **Execution**: Approved trades are executed via Binance API
 4. **Transparency**: All reasoning, prompts, and decisions are stored in the database
 5. **Visualization**: The dashboard displays real-time performance and trade history
