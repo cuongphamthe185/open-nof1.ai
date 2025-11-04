@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { stopLoss, takeProfit } = body;
+    const { stopLoss, takeProfit, positionId } = body; // ✅ ADD: positionId
 
     if (!stopLoss && !takeProfit) {
       return NextResponse.json(
@@ -15,11 +15,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // ✅ OPTIONAL: Validate positionId if provided
+    if (positionId && typeof positionId !== 'string') {
+      return NextResponse.json(
+        { error: "positionId must be a string" },
+        { status: 400 }
+      );
+    }
+
     // Create chat entry for tracking
     const chat = await prisma.chat.create({
       data: {
         reasoning: "Manual test SL/TP",
-        chat: `Testing SL: ${stopLoss || "N/A"}, TP: ${takeProfit || "N/A"}`,
+        chat: `Testing SL: ${stopLoss || "N/A"}, TP: ${takeProfit || "N/A"}${positionId ? ` for position ${positionId}` : ''}`,
         userPrompt: "Manual test via API",
         tradings: {
           create: {
@@ -39,17 +47,20 @@ export async function POST(request: NextRequest) {
       stopLoss,
       takeProfit,
       chatId: chat.id,
+      positionId, // ✅ Pass positionId
     });
 
     return NextResponse.json({
       success: result.success,
       chatId: chat.id,
+      positionId: result.positionId || positionId, // ✅ Return positionId
       message: result.success
-        ? `Set SL: ${stopLoss || "N/A"}, TP: ${takeProfit || "N/A"}`
+        ? `Set SL: ${stopLoss || "N/A"}, TP: ${takeProfit || "N/A"}${positionId ? ` for position ${positionId}` : ''}`
         : result.error,
       details: {
         stopLoss,
         takeProfit,
+        positionId: result.positionId || positionId,
       },
     });
   } catch (error: any) {

@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: result.success,
       chatId: chat.id,
-      order: result.order,
+      positionId: result.positionId, // ✅ Return positionId
       message: result.success
         ? `Bought ${amountBTC.toFixed(8)} BTC (~$${amountUSD})`
         : result.error,
@@ -59,6 +59,7 @@ export async function POST(request: NextRequest) {
         btcPrice,
         leverage,
         estimatedCost: amountUSD,
+        positionId: result.positionId, // ✅ Include in details
       },
     });
   } catch (error: any) {

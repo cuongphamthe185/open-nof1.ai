@@ -39,19 +39,21 @@ export async function executeBuyOrder(params: {
 
   try {
     if (isDryRun) {
+      const dryRunPositionId = `dry-run-${Date.now()}`;
       console.log("🧪 [DRY RUN] Would execute BUY:", {
         symbol: tradingSymbol,
         amount,
         leverage,
         pricing,
         estimatedCost: amount * pricing,
+        positionId: dryRunPositionId,
       });
 
       // Simulate success in dry-run mode
       await prisma.trading.updateMany({
         where: { chatId, opeartion: Opeartion.Buy },
         data: {
-          orderId: `dry-run-${Date.now()}`,
+          orderId: dryRunPositionId,
           executedAt: new Date(),
           executedPrice: pricing,
           executedAmount: amount,
@@ -63,6 +65,7 @@ export async function executeBuyOrder(params: {
       return {
         success: true,
         order: null,
+        positionId: dryRunPositionId, // ✅ Return positionId
         message: `[DRY RUN] Simulated buy of ${amount} ${symbol}`,
       };
     }
@@ -87,11 +90,16 @@ export async function executeBuyOrder(params: {
       safeAmount
     );
 
+    // ✅ FETCH: Position after buy
+    const positions = await binance.fetchPositions([tradingSymbol]);
+    const position = positions.find((p) => p.symbol === tradingSymbol && p.contracts > 0);
+    const positionId = position?.id || order.id;
+
     // Log to database
     await prisma.trading.updateMany({
       where: { chatId, opeartion: Opeartion.Buy },
       data: {
-        orderId: order.id,
+        orderId: positionId, // ✅ Save position ID
         executedAt: new Date(),
         executedPrice: order.average || pricing,
         executedAmount: order.filled || safeAmount,
@@ -103,7 +111,9 @@ export async function executeBuyOrder(params: {
     console.log(
       `✅ BUY executed: ${order.filled} ${symbol} @ ${order.average}`
     );
-    return { success: true, order };
+    console.log(`📍 Position ID: ${positionId}`); // ✅ Log position ID
+    
+    return { success: true, order, positionId }; // ✅ Return positionId
   } catch (error: any) {
     console.error("❌ BUY failed:", error.message);
 
@@ -165,7 +175,7 @@ export async function executeSellOrder(params: {
     const positions = await binance.fetchPositions([tradingSymbol]);
     const position = positions.find((p) => p.symbol === tradingSymbol);
 
-    if (!position || position.contracts === 0) {
+    if (!position || !position.contracts || position.contracts === 0) {
       throw new Error("No position to sell");
     }
 
@@ -225,8 +235,9 @@ export async function setStopLossTakeProfit(params: {
   stopLoss?: number;
   takeProfit?: number;
   chatId: string;
+  positionId?: string; // ✅ ADD: positionId parameter
 }) {
-  const { symbol, stopLoss, takeProfit, chatId } = params;
+  const { symbol, stopLoss, takeProfit, chatId, positionId } = params;
   const tradingSymbol = `${symbol}/USDT`;
   const isDryRun = !isRealTradingEnabled();
 
@@ -236,6 +247,7 @@ export async function setStopLossTakeProfit(params: {
         symbol: tradingSymbol,
         stopLoss,
         takeProfit,
+        positionId,
       });
 
       // Simulate success in dry-run mode
@@ -244,11 +256,13 @@ export async function setStopLossTakeProfit(params: {
         data: {
           executedAt: new Date(),
           status: "FILLED",
+          orderId: positionId, // ✅ Link to position
         },
       });
 
       return {
         success: true,
+        positionId,
         message: `[DRY RUN] Simulated SL: ${stopLoss}, TP: ${takeProfit}`,
       };
     }
@@ -258,14 +272,27 @@ export async function setStopLossTakeProfit(params: {
       symbol: tradingSymbol,
       stopLoss,
       takeProfit,
+      positionId,
     });
 
     // Get current position
     const positions = await binance.fetchPositions([tradingSymbol]);
-    const position = positions.find((p) => p.symbol === tradingSymbol);
+    let position;
 
-    if (!position || position.contracts === 0) {
-      throw new Error("No position to set SL/TP");
+    if (positionId) {
+      // Find specific position by ID
+      position = positions.find((p) => p.id === positionId);
+    } else {
+      // Fallback: Find any open position
+      position = positions.find((p) => p.symbol === tradingSymbol && (p.contracts || 0) > 0);
+    }
+
+    if (!position || !position.contracts || position.contracts === 0) {
+      throw new Error(
+        positionId 
+          ? `Position ${positionId} not found or closed`
+          : "No open position found"
+      );
     }
 
     const amount = position.contracts;
@@ -278,9 +305,12 @@ export async function setStopLossTakeProfit(params: {
         "sell",
         amount,
         undefined,
-        { stopPrice: stopLoss }
+        { 
+          stopPrice: stopLoss,
+          reduceOnly: true, // ✅ Only close position
+        }
       );
-      console.log(`✅ Stop Loss set at ${stopLoss}`);
+      console.log(`✅ Stop Loss set at ${stopLoss} for position ${position.id}`);
     }
 
     // Set Take Profit (if provided)
@@ -291,9 +321,12 @@ export async function setStopLossTakeProfit(params: {
         "sell",
         amount,
         undefined,
-        { stopPrice: takeProfit }
+        { 
+          stopPrice: takeProfit,
+          reduceOnly: true,
+        }
       );
-      console.log(`✅ Take Profit set at ${takeProfit}`);
+      console.log(`✅ Take Profit set at ${takeProfit} for position ${position.id}`);
     }
 
     // Update database
@@ -302,10 +335,11 @@ export async function setStopLossTakeProfit(params: {
       data: {
         executedAt: new Date(),
         status: "FILLED",
+        orderId: position.id, // ✅ Link to position
       },
     });
 
-    return { success: true };
+    return { success: true, positionId: position.id };
   } catch (error: any) {
     console.error("❌ SL/TP failed:", error.message);
 
