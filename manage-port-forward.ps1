@@ -1,323 +1,158 @@
-# ============================================
-# WSL2 Port Forwarding Manager for Port 3000
-# Automatically detects and configures port forwarding
-# ============================================
-
+# WSL2 Port Forwarding Manager
 param(
     [switch]$Clean,
     [switch]$Help
 )
 
-# Colors for output
-function Write-ColorOutput($ForegroundColor) {
-    $fc = $host.UI.RawUI.ForegroundColor
-    $host.UI.RawUI.ForegroundColor = $ForegroundColor
-    if ($args) {
-        Write-Output $args
-    }
-    $host.UI.RawUI.ForegroundColor = $fc
-}
+function Write-Step($msg) { Write-Host "`n==> $msg" -ForegroundColor Cyan }
+function Write-Success($msg) { Write-Host "    OK $msg" -ForegroundColor Green }
+function Write-Warn($msg) { Write-Host "    ! $msg" -ForegroundColor Yellow }
+function Write-Err($msg) { Write-Host "    X $msg" -ForegroundColor Red }
+function Write-Info($msg) { Write-Host "    $msg" -ForegroundColor White }
 
-function Write-Step($message) {
-    Write-ColorOutput Cyan "`n==> $message"
-}
-
-function Write-Success($message) {
-    Write-ColorOutput Green "    ✓ $message"
-}
-
-function Write-Warning($message) {
-    Write-ColorOutput Yellow "    ! $message"
-}
-
-function Write-Error($message) {
-    Write-ColorOutput Red "    ✗ $message"
-}
-
-function Write-Info($message) {
-    Write-ColorOutput White "    $message"
-}
-
-# Help
 if ($Help) {
-    Write-Host @"
-WSL2 Port Forwarding Manager
-
-Usage:
-    .\manage-port-forward.ps1           - Setup port forwarding
-    .\manage-port-forward.ps1 -Clean    - Remove all port 3000 forwarding
-    .\manage-port-forward.ps1 -Help     - Show this help
-
-Description:
-    This script manages port forwarding for WSL2 applications running on port 3000.
-    It automatically detects the main network adapter and WSL IP, then configures
-    Windows port forwarding to make the app accessible from other machines.
-
-Examples:
-    # Setup port forwarding
-    .\manage-port-forward.ps1
-
-    # Clean up (remove all port 3000 rules)
-    .\manage-port-forward.ps1 -Clean
-
-"@
+    Write-Host ""
+    Write-Host "WSL2 Port Forwarding Manager"
+    Write-Host "Usage: .\manage-port-forward.ps1 [-Clean] [-Help]"
+    Write-Host ""
     exit 0
 }
 
 Write-Host ""
-Write-ColorOutput Cyan "=================================================="
-Write-ColorOutput Cyan "    WSL2 Port 3000 Forwarding Manager"
-Write-ColorOutput Cyan "=================================================="
-Write-Host ""
+Write-Host "==================================================" -ForegroundColor Cyan
+Write-Host "    WSL2 Port 3000 Forwarding Manager" -ForegroundColor Cyan
+Write-Host "==================================================" -ForegroundColor Cyan
 
-# Check if running as Administrator
 $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
-    Write-Error "This script must be run as Administrator!"
-    Write-Info "Right-click PowerShell and select 'Run as Administrator'"
+    Write-Err "Must run as Administrator!"
     exit 1
 }
 
-# ============================================
-# Step 1: Check existing port forwarding
-# ============================================
-Write-Step "Step 1: Checking existing port forwarding rules..."
-
-$existingRules = netsh interface portproxy show all | Select-String "3000"
-
-if ($existingRules) {
-    Write-Warning "Found existing port 3000 forwarding rules:"
-    $existingRules | ForEach-Object { Write-Info $_ }
+Write-Step "Step 1: Check existing rules"
+$existing = netsh interface portproxy show all | Select-String "3000"
+if ($existing) {
+    Write-Warn "Found existing port 3000 rules"
 } else {
-    Write-Info "No existing port 3000 forwarding rules found"
+    Write-Info "No existing rules"
 }
 
-# ============================================
-# Step 2: Remove existing port 3000 forwarding
-# ============================================
 if ($Clean) {
-    Write-Step "Step 2: Removing all port 3000 forwarding rules..."
-    
-    # Remove IPv4
-    $result = netsh interface portproxy delete v4tov4 listenport=3000 listenaddress=0.0.0.0 2>&1
-    
-    # Try all common listen addresses
-    @("0.0.0.0", "127.0.0.1", "*") | ForEach-Object {
-        netsh interface portproxy delete v4tov4 listenport=3000 listenaddress=$_ 2>&1 | Out-Null
-    }
-    
-    Write-Success "Port forwarding rules removed"
-    
-    # Show remaining rules
-    Write-Step "Verification: Current port forwarding rules:"
+    Write-Step "Step 2: Removing port 3000 rules"
+    netsh interface portproxy delete v4tov4 listenport=3000 listenaddress=0.0.0.0 2>&1 | Out-Null
+    netsh interface portproxy delete v4tov4 listenport=3000 listenaddress=127.0.0.1 2>&1 | Out-Null
+    Write-Success "Rules removed"
+    Write-Host ""
     netsh interface portproxy show all
-    
     Write-Host ""
-    Write-ColorOutput Green "✓ Cleanup complete!"
-    Write-Host ""
+    Write-Host "Cleanup complete!" -ForegroundColor Green
     exit 0
 }
 
-Write-Step "Step 2: Removing old port 3000 forwarding rules..."
-
-# Remove all possible combinations
-@("0.0.0.0", "127.0.0.1") | ForEach-Object {
-    netsh interface portproxy delete v4tov4 listenport=3000 listenaddress=$_ 2>&1 | Out-Null
-}
-
+Write-Step "Step 2: Remove old rules"
+netsh interface portproxy delete v4tov4 listenport=3000 listenaddress=0.0.0.0 2>&1 | Out-Null
+netsh interface portproxy delete v4tov4 listenport=3000 listenaddress=127.0.0.1 2>&1 | Out-Null
 Write-Success "Old rules removed"
 
-# ============================================
-# Step 3: Get network information
-# ============================================
-Write-Step "Step 3: Detecting network configuration..."
-
-# Get WSL IP address
+Write-Step "Step 3: Get network info"
 try {
     $wslIp = (wsl hostname -I).Trim().Split()[0]
-    if (-not $wslIp) {
-        throw "Could not get WSL IP"
-    }
-    Write-Success "WSL IP detected: $wslIp"
+    if (-not $wslIp) { throw "No WSL IP" }
+    Write-Success "WSL IP: $wslIp"
 } catch {
-    Write-Error "Failed to get WSL IP address"
-    Write-Info "Make sure WSL is running: wsl --status"
+    Write-Err "Cannot get WSL IP"
     exit 1
 }
 
-# Get all network adapters with IPv4
-Write-Info "Analyzing network adapters..."
+Write-Info "Analyzing adapters..."
 $adapters = Get-NetIPAddress -AddressFamily IPv4 | Where-Object {
-    $_.IPAddress -ne '127.0.0.1' -and 
-    $_.PrefixOrigin -eq 'Manual' -or $_.PrefixOrigin -eq 'Dhcp'
+    $_.IPAddress -ne '127.0.0.1'
 }
 
 Write-Host ""
-Write-Info "Available network adapters:"
+Write-Info "Available adapters:"
 $adapters | ForEach-Object {
-    $adapter = Get-NetAdapter -InterfaceIndex $_.InterfaceIndex
-    Write-Host ("    [{0}] {1,-30} IP: {2}" -f $_.InterfaceIndex, $adapter.InterfaceDescription, $_.IPAddress)
+    $a = Get-NetAdapter -InterfaceIndex $_.InterfaceIndex
+    Write-Host "    [$($_.InterfaceIndex)] $($a.InterfaceDescription) - $($_.IPAddress)"
 }
-Write-Host ""
 
-# Determine primary adapter (exclude WSL, Tailscale, virtual adapters)
-$primaryAdapter = $adapters | Where-Object {
-    $adapter = Get-NetAdapter -InterfaceIndex $_.InterfaceIndex
-    $adapter.Status -eq 'Up' -and
-    $adapter.InterfaceDescription -notmatch 'WSL|Tailscale|Virtual|Hyper-V|VPN|Bluetooth|Loopback' -and
-    $_.IPAddress -match '^\d+\.\d+\.\d+\.\d+$' -and
-    -not ($_.IPAddress -match '^(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.16\.|169\.254\.)')
+$primary = $adapters | Where-Object {
+    $a = Get-NetAdapter -InterfaceIndex $_.InterfaceIndex
+    $a.Status -eq 'Up' -and
+    $a.InterfaceDescription -notmatch 'WSL|Tailscale|Virtual|Hyper-V|VPN|Bluetooth'
 } | Select-Object -First 1
 
-if (-not $primaryAdapter) {
-    Write-Warning "Could not auto-detect primary adapter, using first available adapter"
-    $primaryAdapter = $adapters | Where-Object {
-        $adapter = Get-NetAdapter -InterfaceIndex $_.InterfaceIndex
-        $adapter.Status -eq 'Up'
+if (-not $primary) {
+    $primary = $adapters | Where-Object {
+        $a = Get-NetAdapter -InterfaceIndex $_.InterfaceIndex
+        $a.Status -eq 'Up'
     } | Select-Object -First 1
 }
 
-if (-not $primaryAdapter) {
-    Write-Error "No suitable network adapter found!"
-    Write-Info "Available adapters listed above. Exiting..."
+if (-not $primary) {
+    Write-Err "No adapter found"
     exit 1
 }
 
-$primaryInterface = Get-NetAdapter -InterfaceIndex $primaryAdapter.InterfaceIndex
-$primaryIP = $primaryAdapter.IPAddress
+$primaryIp = $primary.IPAddress
+$primaryName = (Get-NetAdapter -InterfaceIndex $primary.InterfaceIndex).InterfaceDescription
+Write-Success "Primary: $primaryName"
+Write-Info "IP: $primaryIp"
 
-Write-Success "Selected primary adapter:"
-Write-Info "Interface: $($primaryInterface.InterfaceDescription)"
-Write-Info "IP Address: $primaryIP"
-Write-Info "Status: $($primaryInterface.Status)"
-
-# Get Tailscale IP (if available)
-$tailscaleAdapter = $adapters | Where-Object {
-    $adapter = Get-NetAdapter -InterfaceIndex $_.InterfaceIndex
-    $adapter.InterfaceDescription -match 'Tailscale'
+$tailscale = $adapters | Where-Object {
+    $a = Get-NetAdapter -InterfaceIndex $_.InterfaceIndex
+    $a.InterfaceDescription -match 'Tailscale'
+}
+$tailscaleIp = if ($tailscale) { $tailscale.IPAddress } else { $null }
+if ($tailscaleIp) {
+    Write-Success "Tailscale: $tailscaleIp"
 }
 
-if ($tailscaleAdapter) {
-    $tailscaleIP = $tailscaleAdapter.IPAddress
-    Write-Success "Tailscale IP detected: $tailscaleIP"
-} else {
-    Write-Info "Tailscale not detected (optional)"
-}
+Write-Step "Step 4: Create port forwarding"
+Write-Info "Rule: 0.0.0.0:3000 -> $wslIp:3000"
 
-# ============================================
-# Step 4: Configure port forwarding
-# ============================================
-Write-Step "Step 4: Configuring port forwarding..."
-
-Write-Info "Creating port forwarding rule:"
-Write-Info "Listen on all interfaces (0.0.0.0:3000)"
-Write-Info "Forward to WSL: $wslIp:3000"
-Write-Host ""
-
-# Add port forwarding rule
-$result = netsh interface portproxy add v4tov4 `
-    listenport=3000 `
-    listenaddress=0.0.0.0 `
-    connectport=3000 `
-    connectaddress=$wslIp
+$result = netsh interface portproxy add v4tov4 listenport=3000 listenaddress=0.0.0.0 connectport=3000 connectaddress=$wslIp
 
 if ($LASTEXITCODE -eq 0) {
-    Write-Success "Port forwarding rule created successfully!"
+    Write-Success "Port forwarding created"
 } else {
-    Write-Error "Failed to create port forwarding rule"
-    Write-Info "Error: $result"
+    Write-Err "Failed to create rule"
     exit 1
 }
 
-# ============================================
-# Step 5: Configure Windows Firewall
-# ============================================
-Write-Step "Step 5: Configuring Windows Firewall..."
+Write-Step "Step 5: Configure firewall"
+$ruleName = "WSL2-NOF1-Port-3000"
+Remove-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue 2>&1 | Out-Null
 
-$firewallRuleName = "WSL2-NOF1-Trading-Bot-Port-3000"
-
-# Remove existing rule
-Remove-NetFirewallRule -DisplayName $firewallRuleName -ErrorAction SilentlyContinue 2>&1 | Out-Null
-
-# Add new firewall rule
 try {
-    New-NetFirewallRule -DisplayName $firewallRuleName `
-        -Direction Inbound `
-        -LocalPort 3000 `
-        -Protocol TCP `
-        -Action Allow `
-        -Profile Any `
-        -ErrorAction Stop | Out-Null
-    
-    Write-Success "Firewall rule created: $firewallRuleName"
+    New-NetFirewallRule -DisplayName $ruleName -Direction Inbound -LocalPort 3000 -Protocol TCP -Action Allow -Profile Any -ErrorAction Stop | Out-Null
+    Write-Success "Firewall rule created"
 } catch {
-    Write-Warning "Failed to create firewall rule (may already exist)"
+    Write-Warn "Firewall rule may exist"
 }
 
-# ============================================
-# Verification
-# ============================================
-Write-Step "Verification: Current configuration"
-Write-Host ""
-
-# Show port forwarding rules
-Write-Info "Port forwarding rules:"
-netsh interface portproxy show all | ForEach-Object {
-    if ($_ -match "3000") {
-        Write-ColorOutput Green "    $_"
-    }
+Write-Step "Verification"
+Write-Info "Current rules:"
+netsh interface portproxy show all | Where-Object { $_ -match "3000" } | ForEach-Object {
+    Write-Host "    $_" -ForegroundColor Green
 }
 
 Write-Host ""
-
-# ============================================
-# Summary
-# ============================================
+Write-Host "==================================================" -ForegroundColor Cyan
+Write-Host "    Setup Complete!" -ForegroundColor Green
+Write-Host "==================================================" -ForegroundColor Cyan
 Write-Host ""
-Write-ColorOutput Cyan "=================================================="
-Write-ColorOutput Green "    ✓ Port Forwarding Setup Complete!"
-Write-ColorOutput Cyan "=================================================="
-Write-Host ""
-
-Write-ColorOutput Yellow "📡 Access Information:"
-Write-Host ""
-Write-Info "From localhost:"
-Write-Info "    http://localhost:3000"
-Write-Host ""
-
-Write-Info "From LAN (Primary network):"
-Write-Info "    http://${primaryIP}:3000"
-Write-Host ""
-
-if ($tailscaleIP) {
-    Write-Info "From Tailscale network:"
-    Write-Info "    http://${tailscaleIP}:3000"
-    Write-Host ""
+Write-Host "Access URLs:" -ForegroundColor Yellow
+Write-Host "  Localhost:  http://localhost:3000"
+Write-Host "  LAN:        http://$primaryIp:3000"
+if ($tailscaleIp) {
+    Write-Host "  Tailscale:  http://$tailscaleIp:3000"
 }
-
-Write-Info "From WSL IP (direct):"
-Write-Info "    http://${wslIp}:3000"
+Write-Host "  WSL Direct: http://$wslIp:3000"
 Write-Host ""
-
-Write-ColorOutput Yellow "🔧 Management Commands:"
+Write-Host "Management:" -ForegroundColor Yellow
+Write-Host "  View rules:   netsh interface portproxy show all"
+Write-Host "  Remove rules: .\manage-port-forward.ps1 -Clean"
 Write-Host ""
-Write-Info "View all port forwarding rules:"
-Write-Info "    netsh interface portproxy show all"
-Write-Host ""
-Write-Info "Remove port 3000 forwarding:"
-Write-Info "    .\manage-port-forward.ps1 -Clean"
-Write-Host ""
-Write-Info "View firewall rules:"
-Write-Info "    Get-NetFirewallRule -DisplayName '*3000*'"
-Write-Host ""
-
-Write-ColorOutput Yellow "⚠️  Important Notes:"
-Write-Host ""
-Write-Info "• Port forwarding persists after Windows restart"
-Write-Info "• WSL IP may change after 'wsl --shutdown'"
-Write-Info "• Re-run this script if WSL IP changes"
-Write-Info "• Make sure your app in WSL listens on 0.0.0.0:3000"
-Write-Host ""
-
-Write-ColorOutput Green "✓ All done! Your WSL app should now be accessible from the network."
+Write-Host "Done!" -ForegroundColor Green
 Write-Host ""
