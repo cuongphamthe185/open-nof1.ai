@@ -46,6 +46,15 @@ model Trading {
   stopLoss   Int?
   takeProfit Int?
 
+  // Order execution tracking
+  orderId          String?   // Binance order ID
+  executedAt       DateTime? // When order was executed
+  executedPrice    Float?    // Actual fill price
+  executedAmount   Float?    // Actual fill amount
+  fee              Float?    // Trading fee
+  status           String    @default("PENDING") // PENDING | FILLED | FAILED
+  errorMessage     String?   // Error message if failed
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

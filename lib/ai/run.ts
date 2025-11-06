@@ -2,7 +2,7 @@ import { generateObject } from "ai";
 import { generateUserPrompt, tradingPrompt } from "./prompt";
 import { getCurrentMarketState } from "../trading/current-market-state";
 import { z } from "zod";
-import { deepseekThinking } from "./model"; // ✅ CHANGED: Dùng DeepSeek Direct (có reasoning)
+import { deepseek } from "./model"; // ✅ CHANGED: Dùng deepseek-chat (tiết kiệm)
 import { getAccountInformationAndPerformance } from "../trading/account-information-and-performance";
 import { prisma } from "../prisma";
 import { Opeartion, Symbol } from "@prisma/client";
@@ -24,8 +24,8 @@ export async function run(initialCapital: number) {
     invocationCount,
   });
 
-  const { object, reasoning } = await generateObject({
-    model: deepseekThinking, // ✅ CHANGED: Dùng DeepSeek Direct (có reasoning)
+  const { object } = await generateObject({ // ✅ REMOVED: reasoning (deepseek-chat không có)
+    model: deepseek, // ✅ CHANGED: Dùng deepseek-chat
     system: tradingPrompt,
     prompt: userPrompt,
     output: "object",
@@ -76,7 +76,7 @@ export async function run(initialCapital: number) {
   if (object.opeartion === Opeartion.Buy) {
     await prisma.chat.create({
       data: {
-        reasoning: reasoning || "<no reasoning>",
+        reasoning: object.chat || "<no reasoning>", // ✅ Use chat as reasoning
         chat: object.chat || "<no chat>",
         userPrompt,
         tradings: {
@@ -97,7 +97,7 @@ export async function run(initialCapital: number) {
   if (object.opeartion === Opeartion.Sell) {
     await prisma.chat.create({
       data: {
-        reasoning: reasoning || "<no reasoning>",
+        reasoning: object.chat || "<no reasoning>", // ✅ Use chat as reasoning
         chat: object.chat || "<no chat>",
         userPrompt,
         tradings: {
@@ -117,7 +117,7 @@ export async function run(initialCapital: number) {
       object.adjustProfit?.stopLoss && object.adjustProfit?.takeProfit;
     await prisma.chat.create({
       data: {
-        reasoning: reasoning || "<no reasoning>",
+        reasoning: object.chat || "<no reasoning>", // ✅ Use chat as reasoning
         chat: object.chat || "<no chat>",
         userPrompt,
         tradings: {
