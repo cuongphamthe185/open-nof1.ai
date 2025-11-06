@@ -80,19 +80,31 @@ export async function executeBuyOrder(params: {
     // Set leverage
     await binance.setLeverage(leverage, tradingSymbol);
 
-    // Calculate position size (with safety buffer for fees)
+    // Get minimum order size and validate
     const minSize = await getMinOrderSize(tradingSymbol);
-    const safeAmount = Math.max(amount * 0.95, minSize); // 95% for fees
+    
+    if (amount < minSize) {
+      throw new Error(
+        `Order amount ${amount} is less than minimum ${minSize} for ${tradingSymbol}`
+      );
+    }
 
-    // Execute MARKET BUY
+    console.log("📊 Order details:", {
+      requestedAmount: amount,
+      minAmount: minSize,
+      symbol: tradingSymbol,
+    });
+
+    // Execute MARKET BUY (use full amount, no reduction for fees)
+    // Fees are deducted from balance, not from position size
     const order = await binance.createMarketBuyOrder(
       tradingSymbol,
-      safeAmount
+      amount
     );
 
     // ✅ FETCH: Position after buy
     const positions = await binance.fetchPositions([tradingSymbol]);
-    const position = positions.find((p) => p.symbol === tradingSymbol && p.contracts > 0);
+    const position = positions.find((p) => p.symbol === tradingSymbol && p.contracts && p.contracts > 0);
     const positionId = position?.id || order.id;
 
     // Log to database
@@ -102,7 +114,7 @@ export async function executeBuyOrder(params: {
         orderId: positionId, // ✅ Save position ID
         executedAt: new Date(),
         executedPrice: order.average || pricing,
-        executedAmount: order.filled || safeAmount,
+        executedAmount: order.filled || amount,
         fee: order.fee?.cost || 0,
         status: "FILLED",
       },
@@ -171,9 +183,11 @@ export async function executeSellOrder(params: {
       percentage,
     });
 
-    // Get current position
+    // Get current position - handle both formats
     const positions = await binance.fetchPositions([tradingSymbol]);
-    const position = positions.find((p) => p.symbol === tradingSymbol);
+    const position = positions.find((p) => 
+      p.symbol === tradingSymbol || p.symbol === `${tradingSymbol}:USDT`
+    );
 
     if (!position || !position.contracts || position.contracts === 0) {
       throw new Error("No position to sell");
@@ -194,6 +208,24 @@ export async function executeSellOrder(params: {
       tradingSymbol,
       sellAmount
     );
+
+    // ✅ Handle SL/TP orders after sell
+    if (percentage === 100) {
+      // Cancel all SL/TP orders when closing position completely
+      try {
+        console.log(`🧹 Closing position completely (100%) - Canceling all SL/TP orders for ${tradingSymbol}...`);
+        await binance.cancelAllOrders(tradingSymbol);
+        console.log(`✅ All SL/TP orders canceled for ${tradingSymbol}`);
+      } catch (cancelError: any) {
+        console.warn(`⚠️ Failed to cancel orders: ${cancelError.message}`);
+        // Don't fail the sell if cancel fails
+      }
+    } else {
+      // ✅ For partial sells, KEEP SL/TP orders
+      // Binance will auto-adjust to remaining position size when triggered (reduceOnly: true)
+      const remainingPercentage = 100 - percentage;
+      console.log(`✅ Sold ${percentage}% of position. Keeping SL/TP orders - they will auto-adjust to remaining ${remainingPercentage}% when triggered.`);
+    }
 
     // Log to database
     await prisma.trading.updateMany({
@@ -277,15 +309,34 @@ export async function setStopLossTakeProfit(params: {
 
     // Get current position
     const positions = await binance.fetchPositions([tradingSymbol]);
+    
+    console.log("DEBUG - Fetched positions for SL/TP:", positions.map(p => ({
+      symbol: p.symbol,
+      contracts: p.contracts,
+      side: p.side
+    })));
+    
     let position;
 
     if (positionId) {
-      // Find specific position by ID
-      position = positions.find((p) => p.id === positionId);
+      // Find specific position by ID or symbol
+      position = positions.find((p) => 
+        p.id === positionId || 
+        p.info?.symbol === positionId ||
+        p.symbol.replace('/', '').replace(':USDT', '') === positionId
+      );
     } else {
-      // Fallback: Find any open position
-      position = positions.find((p) => p.symbol === tradingSymbol && (p.contracts || 0) > 0);
+      // Fallback: Find any open position - handle both "BNB/USDT" and "BNB/USDT:USDT" formats
+      position = positions.find((p) => 
+        (p.symbol === tradingSymbol || p.symbol === `${tradingSymbol}:USDT`) && 
+        (p.contracts || 0) > 0
+      );
     }
+
+    console.log("DEBUG - Found position:", position ? {
+      symbol: position.symbol,
+      contracts: position.contracts
+    } : "NONE");
 
     if (!position || !position.contracts || position.contracts === 0) {
       throw new Error(

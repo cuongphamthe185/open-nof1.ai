@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { executeSellOrder } from "@/lib/trading/order-executor";
 import { Symbol } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { validateSymbol, symbolToTradingPair } from "@/lib/utils/symbol-validator";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { percentage = 100 } = body;
+    const { percentage = 100, symbol: inputSymbol } = body;
 
     if (percentage <= 0 || percentage > 100) {
       return NextResponse.json(
@@ -15,15 +16,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate symbol
+    const symbol = validateSymbol(inputSymbol);
+    const tradingPair = symbolToTradingPair(symbol);
+
     // Create chat entry for tracking
     const chat = await prisma.chat.create({
       data: {
         reasoning: "Manual test sell",
-        chat: `Testing sell ${percentage}% of BTC position`,
+        chat: `Testing sell ${percentage}% of ${symbol} position`,
         userPrompt: "Manual test via API",
         tradings: {
           create: {
-            symbol: Symbol.BTC,
+            symbol: symbol,
             opeartion: "Sell",
           },
         },
@@ -33,7 +38,7 @@ export async function POST(request: NextRequest) {
 
     // Execute order
     const result = await executeSellOrder({
-      symbol: Symbol.BTC,
+      symbol: symbol,
       percentage,
       chatId: chat.id,
     });
@@ -43,9 +48,11 @@ export async function POST(request: NextRequest) {
       chatId: chat.id,
       order: result.order,
       message: result.success
-        ? `Sold ${percentage}% of BTC position`
+        ? `Sold ${percentage}% of ${symbol} position`
         : result.error,
       details: {
+        symbol,
+        tradingPair,
         percentage,
       },
     });

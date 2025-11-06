@@ -15,8 +15,24 @@ BINANCE_USE_SANDBOX="true"   # Use testnet
 ## 📋 Test Commands
 
 ### 1️⃣ Check Initial Balance & Position
+
+**Check default symbol (BTC):**
 ```bash
 curl http://localhost:3000/api/test/check-position
+```
+
+**Check specific symbol:**
+```bash
+# Check BNB position
+curl "http://localhost:3000/api/test/check-position?symbol=BNB"
+
+# Check ETH position
+curl "http://localhost:3000/api/test/check-position?symbol=ETH"
+```
+
+**List ALL open positions (recommended):**
+```bash
+curl http://localhost:3000/api/test/list-positions
 ```
 
 **Expected output:**
@@ -88,14 +104,31 @@ curl http://localhost:3000/api/test/check-position
 ---
 
 ### 4️⃣ Set Stop Loss & Take Profit
-```bash
-# Assuming BTC price = $95,000
-# Stop Loss at -5% = $90,250
-# Take Profit at +10% = $104,500
 
+**Option 1: Set SL/TP for specific symbol (finds first open position)**
+
+```bash
+# For BTC position
 curl -X POST http://localhost:3000/api/test/manual-sltp \
   -H "Content-Type: application/json" \
-  -d '{"stopLoss": 90250, "takeProfit": 104500}'
+  -d '{"stopLoss": 90250, "takeProfit": 104500, "symbol": "BTC"}'
+
+# For BNB position  
+curl -X POST http://localhost:3000/api/test/manual-sltp \
+  -H "Content-Type: application/json" \
+  -d '{"stopLoss": 900, "takeProfit": 1000, "symbol": "BNB"}'
+```
+
+**Option 2: Set SL/TP for specific position by ID (recommended for multiple positions)**
+
+```bash
+# Step 1: Get positionId from buy response or list-positions
+curl http://localhost:3000/api/test/list-positions | jq
+
+# Step 2: Use the positionId (example: "80297250758")
+curl -X POST http://localhost:3000/api/test/manual-sltp \
+  -H "Content-Type: application/json" \
+  -d '{"stopLoss": 900, "takeProfit": 1000, "positionId": "80297250758", "symbol": "BNB"}'
 ```
 
 **Expected output:**
@@ -103,10 +136,14 @@ curl -X POST http://localhost:3000/api/test/manual-sltp \
 {
   "success": true,
   "chatId": "cm456def...",
-  "message": "Set SL: 90250, TP: 104500",
+  "positionId": "80297250758",
+  "message": "Set SL: 900, TP: 1000 for BNB (position 80297250758)",
   "details": {
-    "stopLoss": 90250,
-    "takeProfit": 104500
+    "symbol": "BNB",
+    "tradingPair": "BNB/USDT",
+    "stopLoss": 900,
+    "takeProfit": 1000,
+    "positionId": "80297250758"
   }
 }
 ```
@@ -276,6 +313,159 @@ curl -X POST http://localhost:3000/api/test/manual-buy \
 curl -X POST http://localhost:3000/api/test/manual-buy \
   -H "Content-Type: application/json" \
   -d '{"amountUSD": 5, "leverage": 2}'
+```
+
+---
+
+## 🪙 Test with Different Symbols
+
+### Buy Different Coins
+```bash
+# Buy BTC
+curl -X POST http://localhost:3000/api/test/manual-buy \
+  -H "Content-Type: application/json" \
+  -d '{"amountUSD": 10, "leverage": 1, "symbol": "BTC"}'
+
+# Buy ETH
+curl -X POST http://localhost:3000/api/test/manual-buy \
+  -H "Content-Type: application/json" \
+  -d '{"amountUSD": 10, "leverage": 1, "symbol": "ETH"}'
+
+# Buy BNB
+curl -X POST http://localhost:3000/api/test/manual-buy \
+  -H "Content-Type: application/json" \
+  -d '{"amountUSD": 15, "leverage": 2, "symbol": "BNB"}'
+
+# Buy SOL
+curl -X POST http://localhost:3000/api/test/manual-buy \
+  -H "Content-Type: application/json" \
+  -d '{"amountUSD": 20, "leverage": 1, "symbol": "SOL"}'
+
+# Buy DOGE
+curl -X POST http://localhost:3000/api/test/manual-buy \
+  -H "Content-Type: application/json" \
+  -d '{"amountUSD": 5, "leverage": 1, "symbol": "DOGE"}'
+```
+
+### Check Specific Symbol Position
+```bash
+# Check BTC
+curl "http://localhost:3000/api/test/check-position?symbol=BTC" | jq
+
+# Check ETH
+curl "http://localhost:3000/api/test/check-position?symbol=ETH" | jq
+
+# Check BNB
+curl "http://localhost:3000/api/test/check-position?symbol=BNB" | jq
+
+# Check all positions
+curl http://localhost:3000/api/test/list-positions | jq
+```
+
+### Set SL/TP for Different Symbols
+```bash
+# SL/TP for BTC
+curl -X POST http://localhost:3000/api/test/manual-sltp \
+  -H "Content-Type: application/json" \
+  -d '{"stopLoss": 90000, "takeProfit": 105000, "symbol": "BTC"}'
+
+# SL/TP for ETH
+curl -X POST http://localhost:3000/api/test/manual-sltp \
+  -H "Content-Type: application/json" \
+  -d '{"stopLoss": 3000, "takeProfit": 3500, "symbol": "ETH"}'
+
+# SL/TP for BNB by positionId
+curl -X POST http://localhost:3000/api/test/manual-sltp \
+  -H "Content-Type: application/json" \
+  -d '{"stopLoss": 900, "takeProfit": 1000, "positionId": "80297250758", "symbol": "BNB"}'
+```
+
+### Sell Different Symbols
+```bash
+# Sell 50% BTC
+curl -X POST http://localhost:3000/api/test/manual-sell \
+  -H "Content-Type: application/json" \
+  -d '{"percentage": 50, "symbol": "BTC"}'
+
+# Sell 100% ETH
+curl -X POST http://localhost:3000/api/test/manual-sell \
+  -H "Content-Type: application/json" \
+  -d '{"percentage": 100, "symbol": "ETH"}'
+
+# Sell 75% BNB
+curl -X POST http://localhost:3000/api/test/manual-sell \
+  -H "Content-Type: application/json" \
+  -d '{"percentage": 75, "symbol": "BNB"}'
+```
+
+---
+
+## 🧪 Multi-Symbol Test Scenario
+
+Test trading with multiple symbols simultaneously:
+
+```bash
+# Step 1: Buy multiple coins
+echo "=== Step 1: Buy BTC, ETH, and BNB ==="
+curl -s -X POST http://localhost:3000/api/test/manual-buy \
+  -H "Content-Type: application/json" \
+  -d '{"amountUSD": 10, "leverage": 1, "symbol": "BTC"}' | jq '.message'
+
+curl -s -X POST http://localhost:3000/api/test/manual-buy \
+  -H "Content-Type: application/json" \
+  -d '{"amountUSD": 10, "leverage": 1, "symbol": "ETH"}' | jq '.message'
+
+curl -s -X POST http://localhost:3000/api/test/manual-buy \
+  -H "Content-Type: application/json" \
+  -d '{"amountUSD": 15, "leverage": 2, "symbol": "BNB"}' | jq '.message'
+
+sleep 2
+
+# Step 2: List all positions
+echo -e "\n=== Step 2: List all open positions ==="
+curl -s http://localhost:3000/api/test/list-positions | jq '.openPositions[] | {symbol, amount, entryPrice, positionId}'
+
+# Step 3: Set SL/TP for each
+echo -e "\n=== Step 3: Set SL/TP for each position ==="
+curl -s -X POST http://localhost:3000/api/test/manual-sltp \
+  -H "Content-Type: application/json" \
+  -d '{"stopLoss": 90000, "takeProfit": 105000, "symbol": "BTC"}' | jq '.message'
+
+curl -s -X POST http://localhost:3000/api/test/manual-sltp \
+  -H "Content-Type: application/json" \
+  -d '{"stopLoss": 3000, "takeProfit": 3500, "symbol": "ETH"}' | jq '.message'
+
+# For BNB, use positionId from Step 2
+# Replace "YOUR_BNB_POSITION_ID" with actual ID from list-positions
+curl -s -X POST http://localhost:3000/api/test/manual-sltp \
+  -H "Content-Type: application/json" \
+  -d '{"stopLoss": 900, "takeProfit": 1000, "positionId": "YOUR_BNB_POSITION_ID", "symbol": "BNB"}' | jq '.message'
+
+# Step 4: Check individual positions
+echo -e "\n=== Step 4: Check individual positions ==="
+curl -s "http://localhost:3000/api/test/check-position?symbol=BTC" | jq '.position'
+curl -s "http://localhost:3000/api/test/check-position?symbol=ETH" | jq '.position'
+curl -s "http://localhost:3000/api/test/check-position?symbol=BNB" | jq '.position'
+
+# Step 5: Partial sell
+echo -e "\n=== Step 5: Sell 50% of each position ==="
+curl -s -X POST http://localhost:3000/api/test/manual-sell \
+  -H "Content-Type: application/json" \
+  -d '{"percentage": 50, "symbol": "BTC"}' | jq '.message'
+
+curl -s -X POST http://localhost:3000/api/test/manual-sell \
+  -H "Content-Type: application/json" \
+  -d '{"percentage": 50, "symbol": "ETH"}' | jq '.message'
+
+curl -s -X POST http://localhost:3000/api/test/manual-sell \
+  -H "Content-Type: application/json" \
+  -d '{"percentage": 50, "symbol": "BNB"}' | jq '.message'
+
+# Step 6: Final positions check
+echo -e "\n=== Step 6: Final check ==="
+curl -s http://localhost:3000/api/test/list-positions | jq '{count, positions: .openPositions}'
+
+echo -e "\n✅ Multi-symbol test completed!"
 ```
 
 ---

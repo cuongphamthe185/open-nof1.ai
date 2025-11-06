@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { executeBuyOrder } from "@/lib/trading/order-executor";
 import { Symbol } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { getCurrentMarketState } from "@/lib/trading/current-market-state";
+import { validateSymbol, symbolToTradingPair } from "@/lib/utils/symbol-validator";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { amountUSD, leverage = 1 } = body;
+    const { amountUSD, leverage = 1, symbol: inputSymbol } = body;
 
     if (!amountUSD || amountUSD <= 0) {
       return NextResponse.json(
@@ -15,22 +17,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get current BTC price (you can replace with real-time fetch)
-    const btcPrice = 95000; // TODO: Fetch from getCurrentMarketState
-    const amountBTC = amountUSD / btcPrice;
+    // Validate symbol
+    const symbol = validateSymbol(inputSymbol);
+    const tradingPair = symbolToTradingPair(symbol);
+
+    // Fetch current price from market
+    const marketState = await getCurrentMarketState(tradingPair);
+    const currentPrice = marketState.current_price;
+    const amountCoin = amountUSD / currentPrice;
 
     // Create chat entry for tracking
     const chat = await prisma.chat.create({
       data: {
         reasoning: "Manual test buy",
-        chat: `Testing buy ${amountUSD} USD worth of BTC`,
+        chat: `Testing buy ${amountUSD} USD worth of ${symbol}`,
         userPrompt: "Manual test via API",
         tradings: {
           create: {
-            symbol: Symbol.BTC,
+            symbol: symbol,
             opeartion: "Buy",
-            pricing: btcPrice,
-            amount: amountBTC,
+            pricing: currentPrice,
+            amount: amountCoin,
             leverage,
           },
         },
@@ -40,9 +47,9 @@ export async function POST(request: NextRequest) {
 
     // Execute order
     const result = await executeBuyOrder({
-      symbol: Symbol.BTC,
-      pricing: btcPrice,
-      amount: amountBTC,
+      symbol: symbol,
+      pricing: currentPrice,
+      amount: amountCoin,
       leverage,
       chatId: chat.id,
     });
@@ -50,16 +57,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: result.success,
       chatId: chat.id,
-      positionId: result.positionId, // ✅ Return positionId
+      positionId: result.positionId,
       message: result.success
-        ? `Bought ${amountBTC.toFixed(8)} BTC (~$${amountUSD})`
+        ? `Bought ${amountCoin.toFixed(8)} ${symbol} (~$${amountUSD})`
         : result.error,
       details: {
-        amountBTC,
-        btcPrice,
+        symbol,
+        tradingPair,
+        amountCoin,
+        currentPrice,
         leverage,
         estimatedCost: amountUSD,
-        positionId: result.positionId, // ✅ Include in details
+        positionId: result.positionId,
       },
     });
   } catch (error: any) {
