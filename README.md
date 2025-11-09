@@ -130,6 +130,38 @@ tail -f /tmp/nof1-cron.log    # Cron logs
 grep -i error /tmp/nof1-app.log | tail -20
 ```
 
+## API Testing
+
+### Check Position & Balance
+```bash
+# Check position
+curl http://localhost:3000/api/test/check-position
+
+# List all open positions
+curl http://localhost:3000/api/test/list-positions
+```
+
+### Manual Test Trading
+```bash
+# Buy $5 worth of BTC (1x leverage)
+curl -X POST http://localhost:3000/api/test/manual-buy \
+  -H "Content-Type: application/json" \
+  -d '{"amountUSD": 5, "leverage": 1}'
+
+# Set Stop Loss & Take Profit
+curl -X POST http://localhost:3000/api/test/manual-sltp \
+  -H "Content-Type: application/json" \
+  -d '{"stopLoss": 90250, "takeProfit": 104500, "symbol": "BTC"}'
+
+# Sell 50% of position
+curl -X POST http://localhost:3000/api/test/manual-sell \
+  -H "Content-Type: application/json" \
+  -d '{"percentage": 50}'
+
+# View order history
+curl http://localhost:3000/api/test/order-history
+```
+
 ## Git Aliases (also available)
 
 ```bash
