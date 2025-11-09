@@ -96,6 +96,9 @@ alias nof1-start='${PROJECT_DIR}/start-production.sh'
 alias nof1-status='${PROJECT_DIR}/check-status.sh'
 alias nof1-stop='pkill -f \"bun dev\" || true && pkill -f \"cron.ts\" || true && sleep 2 && echo \"Stopped\"'
 alias nof1-verify='${PROJECT_DIR}/verify-network-config.sh'
+alias nof1-health='${PROJECT_DIR}/scripts/system-health-check.sh'
+alias nof1-prisma='${PROJECT_DIR}/scripts/regenerate-prisma.sh'
+alias nof1-trigger='${PROJECT_DIR}/scripts/trigger-cron.sh'
 
 # Quick navigation
 alias nof1='cd ${PROJECT_DIR}'
@@ -125,6 +128,9 @@ chmod +x "${PROJECT_DIR}/start-production.sh" 2>/dev/null || true
 chmod +x "${PROJECT_DIR}/start-full-system.sh" 2>/dev/null || true
 chmod +x "${PROJECT_DIR}/check-status.sh" 2>/dev/null || true
 chmod +x "${PROJECT_DIR}/verify-network-config.sh" 2>/dev/null || true
+chmod +x "${PROJECT_DIR}/scripts/system-health-check.sh" 2>/dev/null || true
+chmod +x "${PROJECT_DIR}/scripts/regenerate-prisma.sh" 2>/dev/null || true
+chmod +x "${PROJECT_DIR}/scripts/trigger-cron.sh" 2>/dev/null || true
 echo -e "   ${GREEN}✓ Scripts are now executable${NC}\n"
 
 # Reload shell config
@@ -157,6 +163,9 @@ echo -e "   ${BLUE}nof1-start${NC}    - Start the trading bot"
 echo -e "   ${BLUE}nof1-status${NC}   - Check bot status"
 echo -e "   ${BLUE}nof1-stop${NC}     - Stop the trading bot"
 echo -e "   ${BLUE}nof1-verify${NC}   - Verify network configuration"
+echo -e "   ${BLUE}nof1-health${NC}   - Run comprehensive system health check"
+echo -e "   ${BLUE}nof1-prisma${NC}   - Regenerate Prisma Client"
+echo -e "   ${BLUE}nof1-trigger${NC}  - Manually trigger cron jobs (metrics|ai|sr)"
 echo ""
 
 echo -e "${YELLOW}Git aliases:${NC}"
