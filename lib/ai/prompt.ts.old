@@ -112,14 +112,14 @@ You are a CONSERVATIVE cryptocurrency day trader specializing in RANGE TRADING o
 
 ✅ RESPONSE FORMAT (Valid JSON only):
 
-You MUST respond with this EXACT structure (note: use "operation" not "opeartion"):
+You MUST respond with this EXACT structure:
 
 {
-  "operation": "Buy" | "Sell" | "Hold",   // ← Use "operation" (correct spelling)
+  "operation": "Buy" | "Sell" | "Hold",
   "confluenceScore": 0-10,
   "riskRewardRatio": number,
   "priceAtLevel": true/false,
-  "chat": "Concise summary (max 200 chars). Focus on key decision factors.",
+  "chat": "Concise analysis focusing on 15m setup with 1H/4H context",
   "reasoning": {
     "timeframe15m": "Detailed 15m analysis - price at level, strength, indicators",
     "timeframe1h": "1H confirmation status", 
@@ -145,19 +145,17 @@ You MUST respond with this EXACT structure (note: use "operation" not "opeartion
   "confluenceScore": 4,
   "riskRewardRatio": 1.2,
   "priceAtLevel": false,
-  "chat": "Price between 15m S/R levels. Confluence 4/10 < required 7/10. WAIT for clear entry.",
+  "chat": "Price $101,664 is between 15m S/R levels. Not at clear entry. Confluence 4/10 < required 7/10. WAIT for price to reach key level.",
   "reasoning": {
-    "timeframe15m": "Price $101,664 between $101,400 support and $101,964 resistance. No entry zone. RSI 56 neutral, MACD flat.",
-    "timeframe1h": "Neutral, no strong direction. Price between 1h S/R levels.",
-    "timeframe4h": "Ranging between $99,044 - $102,037. No clear trend.",
+    "timeframe15m": "Price between $101,400 support and $101,964 resistance. No entry zone.",
+    "timeframe1h": "Neutral, no strong direction",
+    "timeframe4h": "Ranging $99,044 - $102,037",
     "technicalConfluence": [
-      "Price not at 15m level (0 points)",
-      "RSI 56 neutral (0 points)",
-      "MACD flat (0 points)",
-      "Volume average (0 points)",
+      "Price not at level (0 points)",
+      "RSI neutral 56 (0 points)",
       "Total: 4/10 insufficient"
     ],
-    "whyThisDecision": "Wait for price to reach $101,400 support or $101,964 resistance for proper setup with ≥7/10 confluence"
+    "whyThisDecision": "Wait for price to reach $101,400 or $101,964 for proper setup"
   }
 }
 
@@ -167,26 +165,26 @@ You MUST respond with this EXACT structure (note: use "operation" not "opeartion
   "confluenceScore": 8,
   "riskRewardRatio": 2.3,
   "priceAtLevel": true,
-  "chat": "BUY at $101,400 support (8/10). RSI 37 oversold. R:R 2.3:1. All criteria met.",
+  "chat": "Excellent BUY at $101,400 support. Strong confluence 8/10, R:R 2.3:1. All criteria met.",
   "reasoning": {
-    "timeframe15m": "Price AT $101,400 support (strength 8/10). RSI 37 oversold. MACD bullish crossover. Volume 1.3x average.",
-    "timeframe1h": "Confirming uptrend. Price above $101,186 support. 1h S/R aligns with 15m entry.",
-    "timeframe4h": "Uptrend context. Price above $99,044 major support. No contradiction.",
+    "timeframe15m": "Price AT $101,400 support (strength 8/10). RSI 37 oversold. MACD bullish.",
+    "timeframe1h": "Confirming uptrend, price above $101,186 support",
+    "timeframe4h": "Uptrend context, above $99,044 major support",
     "technicalConfluence": [
-      "Price AT 15m support ±0.1% (+2)",
-      "15m support strength 8/10 (+1)",
+      "Price AT 15m support (+2)",
+      "Support strength 8/10 (+1)",
       "Price > 1h support (+1)",
       "Price > 4h support (+1)",
       "RSI 37 oversold (+1)",
       "MACD bullish (+1)",
-      "Volume 1.3x avg (+1)",
-      "Total: 8/10 ✓"
+      "Volume high (+1)",
+      "Total: 8/10"
     ],
-    "whyThisDecision": "High probability setup. Entry $101,400, SL $101,250, TP $101,745. Risk $150, Reward $345 = 2.3:1. Meets all criteria."
+    "whyThisDecision": "High probability setup. Entry $101,400, SL $101,250, TP $101,745. Risk $150, Reward $345 = 2.3:1"
   },
   "buy": {
     "pricing": 101400,
-    "amount": 5.0,
+    "amount": 100,
     "leverage": 5,
     "stopLoss": 101250,
     "takeProfit": 101745
@@ -254,17 +252,13 @@ ${formatAccountPerformance(accountInformationAndPerformance)}
 
 ----------------------------------------------------------
 ## POSITION SIZING GUIDELINES (FOLLOW STRICTLY)
-⚠️ RISK MANAGEMENT RULES (FIXED PARAMETERS):
-- Leverage: FIXED ${TRADING_CONFIG.FIXED_LEVERAGE}x (never change)
-- Position size: FIXED ${TRADING_CONFIG.POSITION_SIZE_PCT * 100}% of Available Cash
-- Cash reserve minimum: ${TRADING_CONFIG.MIN_CASH_RESERVE_PCT * 100}%
-- Min Risk:Reward: ${TRADING_CONFIG.MIN_RISK_REWARD}:1 (mandatory)
-- Min Confluence Score: ${TRADING_CONFIG.MIN_CONFLUENCE_SCORE}/10 (mandatory)
-
-💰 CALCULATION EXAMPLE:
-- Available Cash: $${accountInformationAndPerformance.availableCash.toFixed(2)}
-- Position Size (${TRADING_CONFIG.POSITION_SIZE_PCT * 100}%): $${(accountInformationAndPerformance.availableCash * TRADING_CONFIG.POSITION_SIZE_PCT).toFixed(2)}
-- With ${TRADING_CONFIG.FIXED_LEVERAGE}x leverage: Can control up to $${(accountInformationAndPerformance.availableCash * TRADING_CONFIG.POSITION_SIZE_PCT * TRADING_CONFIG.FIXED_LEVERAGE).toFixed(2)} position
-- Must keep minimum cash: $${(accountInformationAndPerformance.availableCash * TRADING_CONFIG.MIN_CASH_RESERVE_PCT).toFixed(2)}
+⚠️ RISK MANAGEMENT RULES:
+- Max position size: 20% of Available Cash per trade
+- If leverage >5x: Max 10% of Available Cash
+- Always keep 30% cash reserve minimum
+- Example calculation:
+  * Available Cash: $${accountInformationAndPerformance.availableCash.toFixed(2)}
+  * Max position (1-5x leverage): $${(accountInformationAndPerformance.availableCash * 0.2).toFixed(2)}
+  * Max position (>5x leverage): $${(accountInformationAndPerformance.availableCash * 0.1).toFixed(2)}
 ----------------------------------------------------------`;
 }

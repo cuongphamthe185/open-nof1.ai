@@ -82,3 +82,35 @@ enum ModelType {
   Qwen
   Doubao
 }
+
+model SupportResistanceLevel {
+  id                    String   @id @default(uuid())
+  symbol                String   // 'BTC', 'BNB'
+  timeframe             String   // '15m', '1h', '4h'
+  
+  // Support levels
+  support1              Decimal  @db.Decimal(12, 2)
+  support1Strength      Int      // 1-10
+  support2              Decimal? @db.Decimal(12, 2)
+  support2Strength      Int?
+  
+  // Resistance levels
+  resistance1           Decimal  @db.Decimal(12, 2)
+  resistance1Strength   Int      // 1-10
+  resistance2           Decimal? @db.Decimal(12, 2)
+  resistance2Strength   Int?
+  
+  // Metadata
+  currentPrice          Decimal  @db.Decimal(12, 2)
+  calculationMethod     String   @default("hybrid")
+  calculatedAt          DateTime @default(now())
+  validUntil            DateTime
+  
+  createdAt             DateTime @default(now())
+  
+  @@unique([symbol, timeframe, calculatedAt])
+  @@index([symbol, timeframe])
+  @@index([calculatedAt])
+  @@index([validUntil])
+  @@map("support_resistance_levels")
+}

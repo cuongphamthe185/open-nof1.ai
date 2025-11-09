@@ -91,14 +91,14 @@ if [ ${#MISSING_VARS[@]} -ne 0 ]; then
 fi
 
 # ============================================
-# PRODUCTION MODE CONFIRMATION
+# PRODUCTION MODE CONFIGURATION
 # ============================================
 export BINANCE_USE_SANDBOX="false"
 export NEXT_PUBLIC_URL="${NEXT_PUBLIC_URL:-http://localhost:3000}"
 
-echo -e "${RED}============================================${NC}"
-echo -e "${RED}⚠️  FINAL CONFIRMATION${NC}"
-echo -e "${RED}============================================${NC}"
+echo -e "${BLUE}============================================${NC}"
+echo -e "${BLUE}📊 PRODUCTION MODE - Configuration${NC}"
+echo -e "${BLUE}============================================${NC}"
 echo ""
 echo -e "${YELLOW}Trading Mode:${NC}    ${RED}PRODUCTION (REAL MONEY)${NC}"
 echo -e "${YELLOW}Starting Capital:${NC} ${RED}\$$START_MONEY USDT${NC}"
@@ -106,29 +106,8 @@ echo -e "${YELLOW}Exchange:${NC}        ${RED}Binance (Live)${NC}"
 echo -e "${YELLOW}AI Model:${NC}        DeepSeek Reasoner"
 echo -e "${YELLOW}Auto Trading:${NC}    ${RED}DISABLED (Advisory Only)${NC}"
 echo ""
-echo -e "${YELLOW}⚠️  RISKS:${NC}"
-echo "   - AI may make poor decisions"
-echo "   - Market volatility can cause losses"
-echo "   - Bot does NOT execute orders automatically"
-echo "   - You must review and execute trades manually"
-echo ""
-echo -e "${YELLOW}📊 What this bot does:${NC}"
-echo "   ✅ Analyze market data"
-echo "   ✅ Generate trading signals"
-echo "   ✅ Display on dashboard"
-echo "   ❌ Does NOT auto-execute orders"
-echo ""
-
-read -p "$(echo -e ${RED}Type \'I UNDERSTAND THE RISKS\' to continue: ${NC})" confirmation
-
-if [ "$confirmation" != "I UNDERSTAND THE RISKS" ]; then
-  echo ""
-  echo -e "${RED}❌ Confirmation failed. Exiting...${NC}"
-  exit 1
-fi
-
-echo ""
-echo -e "${GREEN}✅ Confirmation accepted. Starting system...${NC}"
+echo -e "${GREEN}✅ Starting system in 2 seconds...${NC}"
+sleep 2
 echo ""
 
 # ============================================
