@@ -116,8 +116,8 @@ ENABLE_REAL_TRADING="true"
 ## Cron Schedule
 
 - **Metrics**: Every 10 seconds
-- **AI Decision**: Every 10 minutes (at :00, :10, :20, :30, :40, :50)
-- **S/R Calculator**: Every 15 minutes (at :02, :17, :32, :47)
+- **AI Decision**: Every 5 minutes (at :00, :05, :10, :15, :20, :25, :30, :35, :40, :45, :50, :55)
+- **S/R Calculator**: Every 10 minutes (at :00, :10, :20, :30, :40, :50)
 
 ## Logs
 

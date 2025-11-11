@@ -1,7 +1,7 @@
 /**
  * Support/Resistance Calculator Cron Job
  * UNIFIED SCHEDULE: Calculates ALL timeframes (15m, 1h, 4h) together
- * Runs at: XX:02, XX:17, XX:32, XX:47 (every 15 minutes)
+ * Runs every 10 minutes at XX:00, XX:10, XX:20, XX:30, XX:40, XX:50
  * Benefits: Consistent timestamps, simpler logic, always fresh data
  */
 
@@ -17,10 +17,9 @@ const TIMEFRAMES: Timeframe[] = ['15m', '1h', '4h'];
  */
 function getNextRunTime(): string {
   const now = new Date();
-  const minutes = [2, 17, 32, 47];
   const currentMinute = now.getMinutes();
   
-  const nextMinute = minutes.find(m => m > currentMinute) || minutes[0];
+  const nextMinute = Math.ceil((currentMinute + 1) / 10) * 10 % 60;
   const nextHour = nextMinute <= currentMinute ? now.getHours() + 1 : now.getHours();
   
   return `${nextHour.toString().padStart(2, '0')}:${nextMinute.toString().padStart(2, '0')}`;
@@ -85,11 +84,11 @@ const runSRCalculation = async () => {
   }
 };
 
-// Schedule to run at XX:02, XX:17, XX:32, XX:47 (every 15 minutes)
-cron.schedule('2,17,32,47 * * * *', runSRCalculation);
+// Schedule to run every 10 minutes
+cron.schedule('*/10 * * * *', runSRCalculation);
 
 console.log('✅ S/R Calculator cron started (UNIFIED SCHEDULE)');
-console.log('📅 Schedule: Every 15 minutes at XX:02, XX:17, XX:32, XX:47');
+console.log('📅 Schedule: Every 10 minutes at XX:00, XX:10, XX:20, XX:30, XX:40, XX:50');
 console.log('📊 Calculates ALL timeframes together: 15m, 1h, 4h');
 console.log('💰 Symbols: BTC, BNB');
 console.log(`⏰ Next run: ${getNextRunTime()}\n`);

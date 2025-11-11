@@ -131,7 +131,7 @@ echo ""
 # 8. Next S/R Calculation
 echo -e "${BLUE}[8] Next S/R Calculator Run:${NC}"
 CURRENT_MIN=$(date +%M)
-NEXT_RUNS=(2 17 32 47)
+NEXT_RUNS=(0 10 20 30 40 50)
 NEXT_MIN=""
 
 for min in "${NEXT_RUNS[@]}"; do
@@ -142,7 +142,7 @@ for min in "${NEXT_RUNS[@]}"; do
 done
 
 if [ -z "$NEXT_MIN" ]; then
-    NEXT_MIN=2
+    NEXT_MIN=0
     NEXT_HOUR=$(($(date +%H) + 1))
 else
     NEXT_HOUR=$(date +%H)

@@ -48,7 +48,7 @@ export interface SRLevels {
 /**
  * Get latest S/R levels for a symbol across all timeframes
  * 
- * Note: With unified cron schedule (every 15 min), all timeframes are calculated
+ * Note: With unified cron schedule (every 10 min), all timeframes are calculated
  * together, ensuring consistent timestamps and no stale data concerns.
  */
 export async function getLatestSupportResistance(

@@ -72,16 +72,16 @@ const runChatInterval = async () => {
   }
 };
 
-// every 10 minutes (optimized for 15m timeframe trading)
-cron.schedule("*/10 * * * *", async () => {
+// every 5 minutes (optimized for 15m timeframe trading)
+cron.schedule("*/5 * * * *", async () => {
   console.log(`⏰ [${INSTANCE_ID}] Cron trigger at ${new Date().toISOString()}`);
   await runChatInterval();
 });
 
 // NOTE: Startup call removed to prevent race condition
-// AI will run at next cron schedule (0, 10, 20, 30, 40, 50 minutes)
+// AI will run at next cron schedule (0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55 minutes)
 
 console.log('✅ All cron jobs scheduled');
 console.log('   - Metrics: Every 10 seconds');
-console.log('   - AI Decision: Every 10 minutes (next at :00, :10, :20, :30, :40, :50)');
-console.log('   - S/R Calculator: Every 15 minutes (at :02, :17, :32, :47)');
+console.log('   - AI Decision: Every 5 minutes (next at :00, :05, :10, :15, :20, :25, :30, :35, :40, :45, :50, :55)');
+console.log('   - S/R Calculator: Every 10 minutes (at :00, :10, :20, :30, :40, :50)');
